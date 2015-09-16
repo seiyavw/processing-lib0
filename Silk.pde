@@ -1,6 +1,6 @@
-enum SilkType {
-  SILK_NORMAL, SILK_FOCUSED, SILK_OUTLINED
-}
+final int SILK_NORMAL = 0;
+final int SILK_EDGE   = 1;
+final int SILK_OUTLINED = 2;
 
 // class
 class Line {
@@ -19,20 +19,22 @@ class Line {
 }
 
 class Silk {
-
-  SilkType type = SILK_NORMAL;
+  //int type = SILK_NORMAL;
+  int type = SILK_NORMAL;
   float aNoise, rNoise, xNoise, yNoise;
   float ang = -PI/2;
   float rad = 100;
   float baseRadius, cx, cy;
+  float ex1, ex2, ey1, ey2;
   int lineCount = 0;
 
-  float r, g, b;
+  float h, s, b, a;
   float scale = 0.5;
 
   float blur = 1.0;
   float centerStep  = 50;
   float outlineStep = 1.0;
+  boolean noiseEnabled = false;
 
   Line[] lines;
 
@@ -42,16 +44,17 @@ class Silk {
     cx           = centerX;
     cy           = centerY;
 
-    lineCount   = 0;
-    rad      = 100;
-    aNoise    = random(10);
+    lineCount = 0;
+    rad    = 100;
+    aNoise = random(10);
     rNoise = random(10);
-    xNoise      = random(10);
-    yNoise      = random(10);
+    xNoise = random(10);
+    yNoise = random(10);
   }
 
   void createLines(int count) {
 
+    lineCount = 0;
     lines = new Line[count];
 
     float m1 = centerStep * blur;
@@ -86,33 +89,23 @@ class Silk {
 
       lines[i] = l;
     }
+
+    // for edge type
+    ex1 = random(width);
+    ex2 = random(width);
+    ey1 = random(height);
+    ey2 = random(height);
   }
 
   void next() {
-    stroke(r, g, b, 50);
-    strokeWeight(1);
     Line l = lines[lineCount];
-
     lineCount++;
     if (lineCount > lines.length - 1) {
       lineCount = 0;
     }
   }
 
-  void back() {
-    stroke(r, g, b, 50);
-    strokeWeight(1);
-    Line l = lines[lineCount];
-
-    lineCount--;
-    if (lineCount < 0) {
-      lineCount = lines.length - 1;
-    }
-  }
-
-  void draw() {
-    stroke(r, g, b, 50);
-    strokeWeight(1);
+  void _draw() {
     float sc = abs(scale);
     float m1 = outlineStep;
     float m2 = outlineStep/2.0;
@@ -139,17 +132,57 @@ class Silk {
       float y2 = v2.y + cy;
       switch (type) {
         case SILK_NORMAL:
+          line(x1, y1, x2, y2);
           break;
-        case SILK_FOCUSED:
-          ellipse(x1,y1,10,10);
-          ellipse(x2,y2,10,10);
+        case SILK_EDGE:
+          line(x1, y1, x2, y2);
+          line(x1, y1, ex1, 0);
+          line(x1, y1, width, ey1);
+          line(x2, y2, ex2, height);
+          line(x2, y2, 0, ey2);
           break;
         case SILK_OUTLINED:
+          line(x1, y1, x2, y2);
           break;
         default:
           break;
       }
-      line(x1, y1, x2, y2);
     }
+  }
+
+  void randomPosition() {
+    float _baseRadius = random(height * 0.65, width * 0.8);
+    baseRadius = _baseRadius;
+    cx = random(baseRadius/2.0, width - baseRadius/2.0);
+    cy = random(baseRadius/2.0, height - baseRadius/2.0);
+  }
+
+  void setHSBA(float _h, float _s, float _b , float _a) {
+    h = _h;
+    s = _s;
+    b = _b;
+    a = _a;
+  }
+
+  void draw() {
+    stroke(h, s, b, a);
+    strokeWeight(1);
+    _draw();
+  }
+
+  void drawNoisy() {
+    stroke(h - 180, s, b, 10);
+    float tx1 = random(20) - 10;
+    float ty1 = random(20) - 10;
+    float tx2 = random(20) - 10;
+    float ty2 = random(20) - 10;
+    pushMatrix();
+    translate(tx1, ty1);
+    _draw();
+    popMatrix();
+    pushMatrix();
+    translate(tx2, ty2);
+    _draw();
+    popMatrix();
   }
 }

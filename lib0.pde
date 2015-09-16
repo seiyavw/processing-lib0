@@ -1,136 +1,123 @@
 //================================= global vars
-
 Silk silk;
-Plant plant;
+Wind wind;
+Particles particles;
+Slashes slashes;
+Ripples ripples;
 
-Particle[] particles;
-Slash[] slashes;
 Microphone mic;
-Ripple[] ripples;
 
-int switchInterval = 4000;
-int lastInvert;
-int invertInterval = 1500;
+final int FPS               = 30;
+final int SILK_LINE_COUNT   = 700;
+final int PARTICLE_COUNT    = 20;
+final int SLASH_COUNT       = 20;
+final int RIPPLE_COUNT      = 10;
 
+// timing and counter
+int lastRipple = 0;
 int lastFrameCount = 0;
 int waitCount = 20;
 int skipCount = 20;
-int beatCount = 0;
-int rippleCount = 0;
 
-final int SILK_COUNT      = 3;
-final int SILK_LINE_COUNT = 700;
-final int PARTICLE_COUNT  = 20;
-final int SLASH_COUNT     = 10;
-final int RIPPLE_COUNT    = 10;
-
-float cx, cy, cz;
+// adjustment
+int switchRate = 4; // switch interval
+float levelRate = 0.08; // input level
 
 // status
-boolean inverted = true;
-boolean scaleDown = false;
+boolean inverted     = false;
+boolean scaleDown    = false;
 
-// mode
+// init
+boolean accelEnabled    = false;
+boolean scaleEnabled    = false;
+boolean moveEnabled     = false;
+// mid
+boolean particleEnabled = false;
+boolean rippleEnabled   = false;
+boolean windEnabled     = false;
+// last
+boolean colorEnabled    = false;
+boolean invertEnabled   = false;
+boolean slashEnabled    = false;
+boolean noiseEnabled    = false;
 
 //================================= init
 
 void setup() {
 
   size(displayWidth, displayHeight, P3D);
+  colorMode(HSB,360,100,100);
   //blendMode(BLEND);
-  background(0);
+  clearBackground();
   smooth();
-  frameRate(30);
+  frameRate(FPS);
 
   // values
   lastFrameCount = frameCount;
-  lastInvert = millis();
 
   // microphone
   mic = new Microphone();
 
   //  silk
-  //float r = width;
-  float r = width * 0.8;
-  cx = width/2.0;
-  cy = height/2.0;
-  cz = (height/2.0) / tan(PI*60.0 / 360.0) / 2.0;
+  float r  = width * 0.7;
+  float cx = width/2.0;
+  float cy = height/2.0;
   silk = new Silk(r, cx, cy);
   silk.createLines(SILK_LINE_COUNT);
 
-  // plant
-  plant = new Plant();
-  plant.update();
+  // wind
+  wind = new Wind();
+  wind.update();
 
   // particles
-  particles = new Particle[PARTICLE_COUNT];
-  for (int i = 0; i < PARTICLE_COUNT; i++) {
-    Particle p = new Particle();
-    particles[i] = p;
-  }
-  changeColor();
-
-
-  // ripples
-  ripples = new Ripple[RIPPLE_COUNT];
-  for (int i = 0; i < RIPPLE_COUNT; i++) {
-    Ripple rip = new Ripple();
-    ripples[i] = rip;
-  }
+  particles = new Particles(PARTICLE_COUNT);
 
   // slash
-  slashes = new Slash[SLASH_COUNT];
-  for (int i = 0; i < SLASH_COUNT; i++) {
-    Slash s = new Slash();
-    slashes[i] = s;
-  }
+  slashes = new Slashes(SLASH_COUNT);
+
+  // ripples
+  ripples = new Ripples(RIPPLE_COUNT);
+
+  // switch
+  switchDrawing();
 }
 
 void clearBackground() {
   if (inverted) {
-    background(222);
+    background(0,0,80);
   } else {
-    background(0);
+    background(0,0,0);
   }
 }
 
 void draw() {
 
+  // clear
   clearBackground();
+  // mic update
   mic.update();
 
+  // draw model updates
   //println("lv:",mic.leftLevel(),"rv:",mic.rightLevel(),"mv:",mic.mixLevel(),"av:",mic.average);
 
-  if (mic.beatIsKick()) {
-    println("kick: ", frameCount);
-
-    beatCount++;
-
-    boolean flag = (beatCount %3 == 0);
+  int rate = FPS * switchRate;
+  boolean flag = (frameCount % rate - (rate/4*3) > 0);
+  if (invertEnabled && inverted != flag) {
     setInverted(flag);
+  }
 
-    // ripple
-    if (rippleCount > RIPPLE_COUNT - 1) {
-      rippleCount = 0;
-    }
-    Ripple rip = ripples[rippleCount];
-    rip.update(random(width), random(height), random(height/3.0, height));
-    rippleCount++;
-
-    // change
+  //if (mic.beatIsKick()) {
+  if (frameCount % rate == 0) {
+    println("kick: ", frameCount);
     scaleDown = mic.average < 0.0;
     switchDrawing();
   }
 
-  if (mic.beatIsSnare()) {
-    println("snare: ", frameCount);
-  }
-  if (mic.beatIsOnset()) {
-    println("onset: ", frameCount);
-  }
-
-  if (mic.beatIsHat()) {
-    println("hat: ", frameCount);
+  if (rippleEnabled) {
+    if(millis() > lastRipple + 2000) {
+      lastRipple = millis();
+      ripples.update();
+    }
   }
 
   if (frameCount - lastFrameCount < waitCount) {
@@ -141,59 +128,87 @@ void draw() {
     silk.next();
   }
 
-  //if (scaleDown) {
-  //  silk.scale -= 0.001;
-  //else {
-  //  silk.scale += 0.001;
-  //}
-  //silk.scale = 0.5 + abs(mic.mixLevel() * 0.1);
+  if (scaleEnabled) {
+    if (scaleDown) {
+      silk.scale -= 0.001;
+    } else {
+      silk.scale += 0.001;
+    }
+  }
 
   // draw components
-  //drawParticles();
-  drawRipples();
-  plant.draw();
+  if (slashEnabled) {
+    if (abs(mic.rightLevel()) > levelRate) {
+      drawSlashes();
+    }
+  }
+  // particles
+  if (particleEnabled) {
+    drawParticles();
+  }
+  // ripples
+  if (rippleEnabled) {
+    drawRipples();
+  }
+  // wind
+  if (windEnabled) {
+    wind.draw();
+  }
+
+  //silk
+  if (noiseEnabled && abs(mic.leftLevel()) > levelRate) {
+    silk.drawNoisy();
+  }
   silk.draw();
 }
 
 void changeColor() {
-  //float r = random(255);
-  //float g = random(255);
-  //float b = random(255);
-  float r = (inverted) ? 0 : 220;
-  float g = (inverted) ? 0 : 220;
-  float b = (inverted) ? 0 : 220;
-  silk.r = r;
-  silk.g = g;
-  silk.b = b;
-  plant.r = r;
-  plant.g = g;
-  plant.b = b;
-
-  for (int i = 0; i < particles.length; i++) {
-    Particle p = particles[i];
-    p.r = r;
-    p.g = g;
-    p.b = b;
+  float h = 0;
+  float s = 0;
+  float b = 100;
+  float a = 60;
+  if (inverted) {
+    b = 0;
+    a = 40;
   }
+  wind.setHSBA(h,s,b,a);
+  particles.setHSBA(h,s,b,30);
+
+  if (colorEnabled && !inverted) {
+    h = random(180, 250);
+    s = 50;
+    b = 80;
+  }
+  silk.setHSBA(h,s,b,50);
 }
 
 void switchDrawing() {
 
-  //waitCount = (int)random(10, 20);
   waitCount = 5;
-  skipCount = (int)random(20, 40);
+  skipCount = (accelEnabled) ? 50 : 1;
   lastFrameCount = frameCount;
 
   // clear and reset color
   clearBackground();
   changeColor();
 
-  // plant
-  plant.update();
+  // wind
+  wind.update();
 
   // silk
   silk.scale = 0.5;
   silk.blur = 5.0 + abs(mic.average) * 5.0;
+
+  // slash
+  if (slashEnabled) {
+    slashes.update();
+  }
+
+  // random size and pos
+  if (moveEnabled) {
+    silk.randomPosition();
+  }
+  // create new lines
   silk.createLines(SILK_LINE_COUNT);
 }
 
@@ -203,13 +218,7 @@ void drawParticles() {
   float y  = random(height);
   float sw = random(width/2.0, width);
   float sh = random(height/2.0, height);
-  for (int i = 0; i < particles.length; i++) {
-    Particle p = particles[i];
-    if (frameCount % 2 == 0) {
-      p.update(x, y, sw, sh);
-    }
-    p.draw();
-  }
+  particles.draw(x,y,sw,sh);
 }
 
 void setInverted(boolean _inverted) {
@@ -218,19 +227,11 @@ void setInverted(boolean _inverted) {
 }
 
 void drawRipples() {
-  for (int i = 0; i < ripples.length; i++) {
-    Ripple rip = ripples[i];
-    rip.draw(inverted);
-  }
+  ripples.draw(inverted);
 }
 
 void drawSlashes() {
-
-  for (int i = 0; i < slashes.length; i++) {
-    Slash s = slashes[i];
-    s.update();
-    s.draw(inverted);
-  }
+  slashes.draw(inverted);
 }
 
 //=================================
@@ -238,7 +239,55 @@ void mouseMoved() {
 }
 
 void keyPressed() {
-  if(key == 'c') {
+
+  switch (key) {
+    case 'a':
+      accelEnabled = !accelEnabled;
+      break;
+    case 'm':
+      moveEnabled = !moveEnabled;
+      break;
+    case 's':
+      scaleEnabled = !scaleEnabled;
+      break;
+    case 'i':
+      invertEnabled = !invertEnabled;
+      break;
+    case 'r':
+      rippleEnabled = !rippleEnabled;
+      break;
+    case 'c':
+      colorEnabled = !colorEnabled;
+      break;
+    case 'w':
+      windEnabled = !windEnabled;
+      break;
+    case 'p':
+      particleEnabled = !particleEnabled;
+      break;
+    case 'x':
+      slashEnabled = !slashEnabled;
+      break;
+    case 'z':
+      noiseEnabled = !noiseEnabled;
+      break;
+    case 'n':
+      silk.type = SILK_NORMAL;
+      break;
+    case 'e':
+      silk.type = SILK_EDGE;
+      break;
+    case CODED:
+      if (keyCode == LEFT) {
+        switchRate++;
+      } else if (keyCode == RIGHT) {
+        if (switchRate > 1) {
+          switchRate--;
+        }
+      }
+      break;
+    default:
+      break;
   }
 }
 

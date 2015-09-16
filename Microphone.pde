@@ -53,7 +53,7 @@ class Microphone {
 
   void update() {
     for(int i = 0; i < in.bufferSize() - 1; i++) {
-      data = (in.left.get(i)*50);
+      data = (in.mix.get(i)*50);
       average = average*(15.0/16.0) + (data/16.0);
     }
   }
