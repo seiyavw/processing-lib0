@@ -1,4 +1,4 @@
-//================================= global vars
+//============ global vars ==============
 Silk silk;
 Wind wind;
 Particles particles;
@@ -26,20 +26,20 @@ boolean inverted     = false;
 boolean scaleDown    = false;
 
 // init
-boolean scaleEnabled    = false;
-boolean moveEnabled     = false;
-boolean accelEnabled    = false;
+boolean scaleEnabled    = false; //s
+boolean moveEnabled     = false; //m
+boolean accelEnabled    = false; //a
 // mid
-boolean particleEnabled = false;
-boolean rippleEnabled   = false;
-boolean windEnabled     = false;
+boolean particleEnabled = false; //p
+boolean rippleEnabled   = false; //r
+boolean windEnabled     = false; //w
 // last
-boolean colorEnabled    = false;
-boolean invertEnabled   = false;
-boolean slashEnabled    = false;
-boolean noiseEnabled    = false;
+boolean colorEnabled    = false; //c
+boolean invertEnabled   = false; //i
+boolean slashEnabled    = false; //x
+boolean noiseEnabled    = false; //z
 
-//================================= init
+//============ init ==============
 
 void setup() {
 
