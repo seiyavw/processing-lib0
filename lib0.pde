@@ -14,14 +14,12 @@ final int SLASH_COUNT       = 20;
 final int RIPPLE_COUNT      = 10;
 
 // timing and counter
-int lastRipple = 0;
+int lastRipple     = 0;
 int lastFrameCount = 0;
-int waitCount = 20;
-int skipCount = 20;
-
-// adjustment
-int switchRate = 4; // switch interval
-float levelRate = 0.08; // input level
+int waitCount      = 20;
+int skipCount      = 20;
+int switchRate     = 4; // switch interval
+float levelRate    = 0.08; // input level
 
 // status
 boolean inverted     = false;
@@ -47,10 +45,10 @@ void setup() {
 
   size(displayWidth, displayHeight, P3D);
   colorMode(HSB,360,100,100);
-  //blendMode(BLEND);
-  clearBackground();
   smooth();
   frameRate(FPS);
+
+  clearBackground();
 
   // values
   lastFrameCount = frameCount;
@@ -106,7 +104,6 @@ void draw() {
     setInverted(flag);
   }
 
-  //if (mic.beatIsKick()) {
   if (frameCount % rate == 0) {
     println("kick: ", frameCount);
     scaleDown = mic.average < 0.0;
