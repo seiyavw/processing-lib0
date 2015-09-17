@@ -18,31 +18,32 @@ int lastRipple     = 0;
 int lastFrameCount = 0;
 int waitCount      = 20;
 int skipCount      = 20;
-int switchRate     = 4; // switch interval
+int switchRate     = 1; // switch interval
 float levelRate    = 0.08; // input level
+float levelRateRight    = 0.05; // input level
 
 // status
 boolean inverted     = false;
 boolean scaleDown    = false;
 
 // init
-boolean scaleEnabled    = false; //s
-boolean moveEnabled     = false; //m
-boolean accelEnabled    = false; //a
+boolean scaleEnabled    = true; //s
+boolean moveEnabled     = true; //m
+boolean accelEnabled    = true; //a
 // mid
-boolean particleEnabled = false; //p
-boolean rippleEnabled   = false; //r
-boolean windEnabled     = false; //w
+boolean particleEnabled = true; //p
+boolean rippleEnabled   = true; //r
+boolean windEnabled     = true; //w
 // last
-boolean colorEnabled    = false; //c
-boolean invertEnabled   = false; //i
-boolean slashEnabled    = false; //x
-boolean noiseEnabled    = false; //z
+boolean colorEnabled    = true; //c
+boolean invertEnabled   = true; //i
+boolean slashEnabled    = true; //x
+boolean noiseEnabled    = true; //z
 
 //============ init ==============
 
 void setup() {
-
+  // initial codes here
   size(displayWidth, displayHeight, P3D);
   colorMode(HSB,360,100,100);
   smooth();
@@ -78,25 +79,17 @@ void setup() {
 
   // switch
   switchDrawing();
-}
 
-void clearBackground() {
-  if (inverted) {
-    background(0,0,80);
-  } else {
-    background(0,0,0);
-  }
 }
 
 void draw() {
-
-  // clear
+  // update and drawing
   clearBackground();
   // mic update
   mic.update();
+  micLog();
 
   // draw model updates
-  //println("lv:",mic.leftLevel(),"rv:",mic.rightLevel(),"mv:",mic.mixLevel(),"av:",mic.average);
 
   int rate = FPS * switchRate;
   boolean flag = (frameCount % rate - (rate/4*3) > 0);
@@ -105,7 +98,6 @@ void draw() {
   }
 
   if (frameCount % rate == 0) {
-    println("kick: ", frameCount);
     scaleDown = mic.average < 0.0;
     switchDrawing();
   }
@@ -135,10 +127,11 @@ void draw() {
 
   // draw components
   if (slashEnabled) {
-    if (abs(mic.rightLevel()) > levelRate) {
+    if (abs(mic.rightLevel()) > levelRateRight) {
       drawSlashes();
     }
   }
+
   // particles
   if (particleEnabled) {
     drawParticles();
@@ -153,10 +146,23 @@ void draw() {
   }
 
   //silk
-  if (noiseEnabled && abs(mic.leftLevel()) > levelRate) {
+  if (noiseEnabled && mic.leftLevel() > levelRate) {
     silk.drawNoisy();
   }
   silk.draw();
+
+}
+
+void micLog() {
+  println("lv:",mic.leftLevel(),"rv:",mic.rightLevel());
+}
+
+void clearBackground() {
+  if (inverted) {
+    background(0,0,80);
+  } else {
+    background(0,0,0);
+  }
 }
 
 void changeColor() {
@@ -172,7 +178,7 @@ void changeColor() {
   particles.setHSBA(h,s,b,30);
 
   if (colorEnabled && !inverted) {
-    h = random(180, 250);
+    h = random(0, 360);
     s = 50;
     b = 80;
   }
@@ -205,6 +211,7 @@ void switchDrawing() {
   if (moveEnabled) {
     silk.randomPosition();
   }
+
   // create new lines
   silk.createLines(SILK_LINE_COUNT);
 }

@@ -20,7 +20,7 @@ class Line {
 
 class Silk {
   //int type = SILK_NORMAL;
-  int type = SILK_NORMAL;
+  int type = SILK_EDGE;
   float aNoise, rNoise, xNoise, yNoise;
   float ang = -PI/2;
   float rad = 100;
