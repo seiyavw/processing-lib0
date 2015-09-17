@@ -28,9 +28,9 @@ boolean inverted     = false;
 boolean scaleDown    = false;
 
 // init
-boolean accelEnabled    = false;
 boolean scaleEnabled    = false;
 boolean moveEnabled     = false;
+boolean accelEnabled    = false;
 // mid
 boolean particleEnabled = false;
 boolean rippleEnabled   = false;

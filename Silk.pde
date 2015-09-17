@@ -66,10 +66,12 @@ class Silk {
 
       aNoise += 0.001;
       ang += (noise(aNoise) * 6) - 3;
-      //if (ang > 360) { ang -= 360; }
-      //if (ang < 0) { ang += 360; }
-      if (ang > 180) { ang -= 180; }
-      if (ang < 0) { ang += 180; }
+      if (ang > 360) {
+        ang -= 360;
+      }
+      if (ang < 0) {
+        ang += 360;
+      }
 
       xNoise += 0.01;
       yNoise += 0.01;
@@ -98,7 +100,6 @@ class Silk {
   }
 
   void next() {
-    Line l = lines[lineCount];
     lineCount++;
     if (lineCount > lines.length - 1) {
       lineCount = 0;
